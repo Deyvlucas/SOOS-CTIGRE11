@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: suporte_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: suporte_tecnico
+      MYSQL_USER: suporte_user
+      MYSQL_PASSWORD: gltecsystem
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    networks:
+      - suporte-network
+
+  backend:
+    build: .
+    container_name: suporte_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - mysql
+    networks:
+      - suporte-network
+
+networks:
+  suporte-network:
+    driver: bridge

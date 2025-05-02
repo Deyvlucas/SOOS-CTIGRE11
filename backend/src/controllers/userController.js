@@ -1,52 +1,97 @@
+const db = require("../config/db");
 const bcrypt = require("bcryptjs");
-const pool = require("../config/db");
+
+// Função para validar e-mail com domínio permitido
+function emailValido(email) {
+  return (
+    email.endsWith("@adm.educacao.pe.gov.br") ||
+    email.endsWith("@professor.educacao.pe.gov.br")
+  );
+}
 
 exports.register = async (req, res) => {
+  // Verifica se o corpo da requisição está vazio
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      message:
+        "Corpo da requisição vazio. Certifique-se de enviar os dados como JSON e definir o Content-Type como application/json.",
+    });
+  }
   const {
-    fullName,
+    full_name,
     whatsapp,
-    networkLogin,
+    network_login,
     gre11,
-    gre11Sector,
+    gre11_sector,
     schools,
-    schoolName,
+    school_name,
     email,
     password,
+    confirm_password,
   } = req.body;
 
+  // Validações básicas
+  if (
+    !full_name ||
+    !whatsapp ||
+    !network_login ||
+    !gre11 ||
+    !schools ||
+    !email ||
+    !password ||
+    !confirm_password
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Todos os campos obrigatórios devem ser preenchidos." });
+  }
+
+  if (!emailValido(email)) {
+    return res.status(400).json({
+      message: "Email inválido. Use um email institucional permitido.",
+    });
+  }
+
+  if (password !== confirm_password) {
+    return res.status(400).json({ message: "As senhas não coincidem." });
+  }
+
   try {
-    // Verifica se email já está cadastrado
-    const [existing] = await pool.query(
+    // Verifica se e-mail já está cadastrado
+    const [existing] = await db.execute(
       "SELECT id FROM users WHERE email = ?",
       [email]
     );
     if (existing.length > 0) {
-      return res.status(400).json({ message: "Email já cadastrado." });
+      return res
+        .status(409)
+        .json({ message: "Este e-mail já está cadastrado." });
     }
 
-    // Hashear a senha
+    // Criptografar senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Inserir novo usuário
-    await pool.query(
-      `INSERT INTO users (full_name, whatsapp, network_login, gre11, gre11_sector, schools, school_name, email, password)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    // Inserir no banco de dados
+    await db.execute(
+      `INSERT INTO users 
+      (full_name, whatsapp, network_login, gre11, gre11_sector, schools, school_name, email, password, is_technician)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, false)`,
       [
-        fullName,
+        full_name,
         whatsapp,
-        networkLogin,
+        network_login,
         gre11,
-        gre11Sector,
+        gre11 === "SIM" ? gre11_sector : null,
         schools,
-        schoolName,
+        schools === "SIM" ? school_name : null,
         email,
         hashedPassword,
       ]
     );
 
-    res.status(201).json({ message: "Usuário cadastrado com sucesso." });
+    return res.status(201).json({ message: "Usuário cadastrado com sucesso!" });
   } catch (error) {
-    console.error("Erro no registro:", error);
-    res.status(500).json({ message: "Erro interno no servidor." });
+    console.error("Erro ao cadastrar usuário:", error);
+    res.status(500).json({ message: "Erro interno ao cadastrar usuário." });
   }
 };

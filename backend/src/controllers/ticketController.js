@@ -1,69 +1,78 @@
-const pool = require("../config/db");
+const db = require("../config/db");
 
-exports.createTicket = async (req, res) => {
+// Criar um novo chamado
+exports.criarChamado = async (req, res) => {
+  console.log("Criando chamado..."); // Adiciona este log para ver se a função é chamada
   const { title, description } = req.body;
   const userId = req.user.id;
 
+  if (!title || !description) {
+    return res
+      .status(400)
+      .json({ message: "Título e descrição são obrigatórios." });
+  }
+
   try {
-    await pool.query(
-      `INSERT INTO tickets (user_id, title, description, status, created_at)
-      VALUES (?, ?, ?, 'PENDENTE', NOW())`,
+    await db.execute(
+      `INSERT INTO tickets (user_id, title, description, status, created_at) VALUES (?, ?, ?, 'PENDENTE', NOW())`,
       [userId, title, description]
     );
-
-    res.status(201).json({ message: "Chamado criado com sucesso." });
+    res.status(201).json({ message: "Chamado criado com sucesso!" });
   } catch (error) {
     console.error("Erro ao criar chamado:", error);
-    res.status(500).json({ message: "Erro interno no servidor." });
+    res.status(500).json({ message: "Erro ao criar chamado." });
   }
 };
 
-exports.getMyTickets = async (req, res) => {
+// Listar chamados do usuário autenticado
+exports.listarMeusChamados = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const [tickets] = await pool.query(
-      `SELECT id, title, description, status, created_at
-       FROM tickets WHERE user_id = ? ORDER BY created_at DESC`,
+    const [chamados] = await db.execute(
+      `SELECT id, title, status, created_at FROM tickets WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
     );
-
-    res.json(tickets);
+    res.json(chamados);
   } catch (error) {
-    console.error("Erro ao buscar chamados:", error);
-    res.status(500).json({ message: "Erro interno no servidor." });
+    console.error("Erro ao buscar chamados do usuário:", error);
+    res.status(500).json({ message: "Erro ao buscar chamados." });
   }
 };
 
-exports.getAllTickets = async (req, res) => {
+// Listar todos os chamados (para técnicos)
+exports.listarTodosChamados = async (req, res) => {
   try {
-    const [tickets] = await pool.query(
-      `SELECT t.id, u.full_name, u.email, t.title, t.description, t.status, t.created_at
-       FROM tickets t
-       JOIN users u ON t.user_id = u.id
-       ORDER BY t.created_at DESC`
+    const [chamados] = await db.execute(
+      `SELECT tickets.*, users.full_name, users.email FROM tickets
+       JOIN users ON tickets.user_id = users.id
+       ORDER BY tickets.created_at DESC`
     );
-
-    res.json(tickets);
+    res.json(chamados);
   } catch (error) {
-    console.error("Erro ao buscar todos os chamados:", error);
-    res.status(500).json({ message: "Erro interno no servidor." });
+    console.error("Erro ao listar chamados:", error);
+    res.status(500).json({ message: "Erro ao listar chamados." });
   }
 };
 
-exports.resolveTicket = async (req, res) => {
+// Resolver chamado
+exports.resolverChamado = async (req, res) => {
   const ticketId = req.params.id;
-  const { resolutionComment } = req.body;
+  const { resolution } = req.body;
 
   try {
-    await pool.query(
-      `UPDATE tickets SET status = 'RESOLVIDO', resolution_comment = ?, resolved_at = NOW() WHERE id = ?`,
-      [resolutionComment, ticketId]
+    const [result] = await db.execute(
+      `UPDATE tickets SET status = 'RESOLVIDO', resolution = ?, resolved_at = NOW() WHERE id = ?`,
+      [resolution, ticketId]
     );
 
-    res.json({ message: "Chamado resolvido com sucesso." });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Chamado não encontrado." });
+    }
+
+    res.json({ message: "Chamado marcado como resolvido." });
   } catch (error) {
     console.error("Erro ao resolver chamado:", error);
-    res.status(500).json({ message: "Erro interno no servidor." });
+    res.status(500).json({ message: "Erro ao resolver chamado." });
   }
 };

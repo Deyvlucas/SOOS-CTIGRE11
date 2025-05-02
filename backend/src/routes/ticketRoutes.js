@@ -3,19 +3,16 @@ const router = express.Router();
 const ticketController = require("../controllers/ticketController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// Aplicando o middleware de autenticação
-router.use(authMiddleware);
+// Criar chamado
+router.post("/criar", authMiddleware, ticketController.criarChamado);
 
-// Abertura de novo chamado
-router.post("/", ticketController.createTicket);
+// Listar chamados do próprio usuário
+router.get("/meus", authMiddleware, ticketController.listarMeusChamados);
 
-// Listar todos os chamados do usuário
-router.get("/my", ticketController.getMyTickets);
+// Listar todos os chamados (técnico)
+router.get("/todos", authMiddleware, ticketController.listarTodosChamados);
 
-// Técnicos: listar todos os chamados
-router.get("/all", ticketController.getAllTickets);
-
-// Técnicos: resolver um chamado
-router.put("/resolve/:id", ticketController.resolveTicket);
+// Marcar como resolvido (técnico)
+router.put("/resolver/:id", authMiddleware, ticketController.resolverChamado);
 
 module.exports = router;

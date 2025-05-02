@@ -29,6 +29,8 @@ services:
       - mysql
     networks:
       - suporte-network
+    volumes:
+      - .:/usr/src/app
 
 networks:
   suporte-network:

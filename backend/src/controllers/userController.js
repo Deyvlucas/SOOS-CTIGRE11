@@ -95,3 +95,27 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: "Erro interno ao cadastrar usuário." });
   }
 };
+
+exports.getPerfil = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      `SELECT id, full_name, whatsapp, network_login, gre11, gre11_sector, schools, school_name, email, is_technician 
+       FROM users 
+       WHERE id = ?`,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error("Erro ao buscar perfil:", error);
+    res
+      .status(500)
+      .json({ message: "Erro ao buscar perfil.", error: error.message });
+  }
+};

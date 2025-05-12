@@ -13,6 +13,6 @@ router.get("/meus", authMiddleware, ticketController.listarMeusChamados);
 router.get("/todos", authMiddleware, ticketController.listarTodosChamados);
 
 // Marcar como resolvido (técnico)
-router.put("/resolver/:id", authMiddleware, ticketController.resolverChamado);
+router.patch("/resolver/:id", authMiddleware, ticketController.resolverChamado);
 
 module.exports = router;

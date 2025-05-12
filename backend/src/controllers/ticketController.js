@@ -61,6 +61,9 @@ exports.resolverChamado = async (req, res) => {
   const { resolution } = req.body;
 
   try {
+    console.log("Tentando resolver chamado ID:", ticketId);
+    console.log("Dados recebidos:", resolution);
+
     const [result] = await db.execute(
       `UPDATE tickets SET status = 'RESOLVIDO', resolution = ?, resolved_at = NOW() WHERE id = ?`,
       [resolution, ticketId]
@@ -72,7 +75,7 @@ exports.resolverChamado = async (req, res) => {
 
     res.json({ message: "Chamado marcado como resolvido." });
   } catch (error) {
-    console.error("Erro ao resolver chamado:", error);
+    console.error("Erro ao resolver chamado:", error); // <-- Aqui ele vai mostrar o erro real
     res.status(500).json({ message: "Erro ao resolver chamado." });
   }
 };
